@@ -70,14 +70,14 @@ def SJF(p, tau0, alpha, t_cs, at):
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
 				if timer < 1000:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
-					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(queue)))
+					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
-					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(queue)))
+					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
 				elif timer < 1000:
-					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(queue)))
+					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
 
 
 
@@ -92,7 +92,7 @@ def SJF(p, tau0, alpha, t_cs, at):
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
 			if timer < 1000:
-				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
+				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
 			start_cs = False
 
 
@@ -104,6 +104,8 @@ def SJF(p, tau0, alpha, t_cs, at):
 				arrival_times[running_process] = timer + processes[running_process][1].pop(0)
 			running_process = None
 
+		waittime += len(queue)
+
 		#check for newly arriving processes, either from finished io or new arrival
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
@@ -112,13 +114,12 @@ def SJF(p, tau0, alpha, t_cs, at):
 				heappush(queue, (process_taus[i], i))
 				if timer < 1000:
 					if at[i] == arrival_times[i]: #first arrival
-						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(queue)))
+						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
 					else: #finished io burst
-						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(queue)))
+						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
 				#update tau for next time based on this cpu burst length
 				process_taus[i] = math.ceil((alpha * processes[i][0][0]) + ((1 - alpha) * process_taus[i]))
-				waittime -= 1 #to account for newly arrived processes that havent waited yet
-		waittime += len(queue)
+				
 
 		# start running a new process if none is running or being switched out
 		if not running_process and not end_cs: #no process currently using CPU
@@ -133,7 +134,7 @@ def SJF(p, tau0, alpha, t_cs, at):
 	#reset timer back one for the last increment
 	timer -= 1
 
-	print("time {}ms: Simulator ended for SJF {}".format(timer, Qstr(queue)))
+	print("time {}ms: Simulator ended for SJF {}".format(timer, Qstr(sorted(queue))))
 	num_bursts = 0
 	cpubursttime = 0
 	turnaroundtime += waittime
@@ -158,7 +159,7 @@ def SJF(p, tau0, alpha, t_cs, at):
 
 
 
-def STR(p, tau0, alpha, t_cs, at):
+def SRT(p, tau0, alpha, t_cs, at):
 	arrival_times = at.copy()
 	processes = copy.deepcopy(p)
 	for i in processes:
@@ -176,27 +177,12 @@ def STR(p, tau0, alpha, t_cs, at):
 	queue = []
 	remaining_cs= 0
 	num_cs = 0
-	num_preemptions = 0
 	start_cs = False
 	end_cs = False
 
 
 	while len(processes) or end_cs:
-		#check for newly arriving processes, either from finished io or new arrival
-		for i in processes.keys():
-			if i != running_process and arrival_times[i] == timer:
-				
-				
-				heappush(queue, (process_taus[i], i))
-				if timer < 1000:
-					if at[i] == arrival_times[i]: #first arrival
-						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(queue)))
-					else: #finished io burst
-						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(queue)))
-				#update tau for next time based on this cpu burst length
-				process_taus[i] = math.ceil((alpha * processes[i][0][0]) + ((1 - alpha) * process_taus[i]))
-				waittime -= 1 #to account for newly arrived processes that havent waited yet
-		waittime += len(queue)
+
 
 		#if a process is running, and not during a context switch, decriment its runtime
 		#if it is the last cpu burst for the process, remove it from dict of processes
@@ -208,14 +194,14 @@ def STR(p, tau0, alpha, t_cs, at):
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
 				if timer < 1000:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
-					print("time {}ms: Recalculated tau = {}ms for procces {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(queue)))
+					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
-					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(queue)))
+					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
 				elif timer < 1000:
-					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(queue)))
+					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
 
 
 
@@ -230,7 +216,7 @@ def STR(p, tau0, alpha, t_cs, at):
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
 			if timer < 1000:
-				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
+				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
 			start_cs = False
 
 
@@ -239,8 +225,24 @@ def STR(p, tau0, alpha, t_cs, at):
 		elif end_cs and remaining_cs == 0:
 			end_cs = False
 			if running_process in processes.keys():
-				arrival_times[running_process] = timer + 1 + processes[running_process][1].pop(0)
+				arrival_times[running_process] = timer + processes[running_process][1].pop(0)
 			running_process = None
+
+		#check for newly arriving processes, either from finished io or new arrival
+		for i in processes.keys():
+			if i != running_process and arrival_times[i] == timer:
+				
+				
+				heappush(queue, (process_taus[i], i))
+				if timer < 1000:
+					if at[i] == arrival_times[i]: #first arrival
+						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
+					else: #finished io burst
+						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
+				#update tau for next time based on this cpu burst length
+				process_taus[i] = math.ceil((alpha * processes[i][0][0]) + ((1 - alpha) * process_taus[i]))
+				waittime -= 1 #to account for newly arrived processes that havent waited yet
+		waittime += len(queue)
 
 		# start running a new process if none is running or being switched out
 		if not running_process and not end_cs: #no process currently using CPU
@@ -251,7 +253,11 @@ def STR(p, tau0, alpha, t_cs, at):
 	
 
 		timer += 1
-	print("time {}ms: Simulator ended for SRT {}".format(timer, Qstr(queue)))
+
+	#reset timer back one for the last increment
+	timer -= 1
+
+	print("time {}ms: Simulator ended for SRT {}".format(timer, Qstr(sorted(queue))))
 	num_bursts = 0
 	cpubursttime = 0
 	turnaroundtime += waittime
@@ -263,12 +269,12 @@ def STR(p, tau0, alpha, t_cs, at):
 	avg_cpubursttime = cpubursttime/num_bursts
 	avg_waittime = waittime/num_bursts
 
-	finalstats = "Algorithm SRT\n"
-	finalstats += "--average CPU burst time: {0:.3f} ms\n".format(avg_cpubursttime)
-	finalstats += "--average wait time: {0:.3f} ms\n".format(avg_waittime)
-	finalstats += "--average turnaround time: {0:.3f} ms\n".format(avg_turnaroundtime)
+	finalstats = "Algorithm SJF\n"
+	finalstats += "-- average CPU burst time: {0:.3f} ms\n".format(avg_cpubursttime)
+	finalstats += "-- average wait time: {0:.3f} ms\n".format(avg_waittime)
+	finalstats += "-- average turnaround time: {0:.3f} ms\n".format(avg_turnaroundtime)
 	finalstats += "-- total number of context switches: {}\n".format(num_cs)
-	finalstats += "--total number of preemptions: {}\n".format(num_preemptions)
+	finalstats += "-- total number of preemptions: 0\n"
 
 	return finalstats
 
@@ -284,7 +290,7 @@ def Qstr(queue):
 	contents = "[Q"
 	if len(queue) == 0:
 		contents += " <empty>"
-	for item in sorted(queue):
+	for item in queue:
 		contents += " "
 		contents += alphabet[item[1]]
 	contents += "]"
