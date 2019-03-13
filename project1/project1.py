@@ -32,21 +32,16 @@ class Rand48(object):
 ############################################################################
 
 
-def FCFS(processes):
-	print("time 0ms: Simulator started for FCFS [Q empty]")
-	RR(processes, float("inf"))
+def FCFS(processes, arrival_times):
+	return RR(processes, float("inf"), "FCFS")
 
 def SJF(p, tau0, alpha, t_cs, at):
 	arrival_times = at.copy()
-	processes = {}
-	print(p)
+	processes = copy.deepcopy(p)
+	for i in processes:
+		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
 
-	for i in p.keys():
-		processes[i] = [[],[]]
-		processes[i][0] = p[i][0].copy()
-		processes[i][1] = p[i][1].copy()
-
-	print("time 0ms: Simulator started for SJF [Q empty]")
+	print("time 0ms: Simulator started for SJF [Q <empty>]")
 
 	running_process = None
 	process_taus = dict()
@@ -67,13 +62,15 @@ def SJF(p, tau0, alpha, t_cs, at):
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
 				
-				#update tau for next time based on this cpu burst length
-				process_taus[i] = (alpha * processes[i][0][0]) + ((1 - alpha) * process_taus[i])
-				if at[i] == arrival_times[i]: #first arrival
-					print("time {}ms: Process {} arrived {}".format(timer, alphabet[i], Qstr(queue)))
-				else: #finished io burst
-					print("time {}ms: Process {} finished performing I/O {}".format(timer, alphabet[i], Qstr(queue)))
+				
 				heappush(queue, (process_taus[i], i))
+				if timer < 1000:
+					if at[i] == arrival_times[i]: #first arrival
+						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(queue)))
+					else: #finished io burst
+						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(queue)))
+				#update tau for next time based on this cpu burst length
+				process_taus[i] = math.ceil((alpha * processes[i][0][0]) + ((1 - alpha) * process_taus[i]))
 				waittime -= 1 #to account for newly arrived processes that havent waited yet
 		waittime += len(queue)
 
@@ -86,10 +83,15 @@ def SJF(p, tau0, alpha, t_cs, at):
 				end_cs = True
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
-				print("time {}ms: Process {} finishes using the CPU {}".format(timer, alphabet[running_process], Qstr(queue)))
+				if timer < 1000:
+					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
+					print("time {}ms: Recalculated tau = {}ms for procces {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(queue)))
+
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
-					print("time {}ms: Process {} terminates by finishing its last CPU burst {}".format(timer, alphabet[running_process], Qstr(queue)))
+					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(queue)))
+				elif timer < 1000:
+					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(queue)))
 
 
 
@@ -103,7 +105,8 @@ def SJF(p, tau0, alpha, t_cs, at):
 		#if a context switch into the queue is occuring and finishes, it starts using the cpu
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
-			print("time {}ms: Process {} starts using the CPU {}".format(timer, alphabet[running_process], Qstr(queue)))
+			if timer < 1000:
+				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
 			start_cs = False
 
 
@@ -122,10 +125,6 @@ def SJF(p, tau0, alpha, t_cs, at):
 				remaining_cs = int(t_cs/2)
 				start_cs = True
 	
-
-
-		
-
 
 		timer += 1
 	print("time {}ms: Simulator ended for SFJ {}".format(timer, Qstr(queue)))
@@ -153,19 +152,23 @@ def SJF(p, tau0, alpha, t_cs, at):
 
 
 
-def STR(p, tau0, alpha):
+def STR(p, tau0, alpha, t_cs, at):
+	arrival_times = at.copy()
+	processes = copy.deepcopy(p)
+	print("time 0ms: Simulator started for SRT [Q <empty>]")
+
+#make round robin extensible by printing out the right algorithm name so it can be used 
+# for FCFS
+def RR(p, t_slice, alg_name):
 	processes = p.copy()
-	print("time 0ms: Simulator started for SJF [Q empty]")
-
-def RR(p, t_slice):
-	processes = p.copy()
-	print("time 0ms: Simulator started for SJF [Q empty]")
+	print("time 0ms: Simulator started for {} [Q <empty>]".format(alg_name))
 
 
+#function depends on a queue being a list of tuples, with index 1 being the process id
 def Qstr(queue):
 	contents = "[Q"
 	if len(queue) == 0:
-		contents += " empty"
+		contents += " <empty>"
 	for item in sorted(queue):
 		contents += " "
 		contents += alphabet[item[1]]
@@ -238,7 +241,7 @@ if __name__ == "__main__":
 	file = open("simout.txt", "w")
 
 
-	file.write(SJF(processes, 1/y, alpha, t_cs, arrival_times))
+	file.write(SJF(processes, math.ceil(1/y), alpha, t_cs, arrival_times))
 
 
 	# test = {1: [[18],[]], 2: [[3],[]], 3: [[4], []]}
