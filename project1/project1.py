@@ -217,6 +217,7 @@ if __name__ == "__main__":
 			upper = int(-math.log(rand.drand())/y)
 		arrival_times[i] = upper
 		num_bursts = int(rand.drand() * 100) + 1
+		#print("Process {} (arrival time {} ms) {} CPU bursts".format(alphabet[i], upper, num_bursts))
 		for j in range(num_bursts):
 			upper = upper_bound + 1
 			while upper > upper_bound:
@@ -227,11 +228,12 @@ if __name__ == "__main__":
 				while upper > upper_bound:
 					upper = math.ceil(-math.log(rand.drand())/y)
 				processes[i][1].append(upper)
+			#print("--> CPU burst {} ms --> I/O burst {} ms".format(processes[i][0][-1], upper))
 
-		print(sum(processes[i][0])/len(processes[i][0]))
-		print(len(processes[i][0]))
-	print(arrival_times)
-	print(processes)
+	# 	print(sum(processes[i][0])/len(processes[i][0]))
+	# 	print(len(processes[i][0]))
+	# print(arrival_times)
+	# print(processes)
 
 	file = open("simout.txt", "w")
 
