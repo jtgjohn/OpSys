@@ -363,6 +363,8 @@ if __name__ == "__main__":
 
 
 	file.write(SJF(processes, math.ceil(1/y), alpha, t_cs, arrival_times))
+	print()
+	file.write(SRT(processes, math.ceil(1/y), alpha, t_cs, arrival_times))
 
 
 	# test = {1: [[18],[]], 2: [[3],[]], 3: [[4], []]}
