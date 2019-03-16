@@ -109,8 +109,6 @@ def SJF(p, tau0, alpha, t_cs, at):
 		#check for newly arriving processes, either from finished io or new arrival
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
-				
-				
 				heappush(queue, (process_taus[i], i))
 				if timer < 1000:
 					if at[i] == arrival_times[i]: #first arrival
@@ -162,21 +160,27 @@ def SJF(p, tau0, alpha, t_cs, at):
 def SRT(p, tau0, alpha, t_cs, at):
 	arrival_times = at.copy()
 	processes = copy.deepcopy(p)
+	preempted = dict()
+	process_taus = dict()
+	last_cpu_burst = dict()
+
 	for i in processes:
 		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		preempted[i] = False
+		process_taus[i] = tau0
 
 	print("time 0ms: Simulator started for SRT [Q <empty>]")
 
 	running_process = None
-	process_taus = dict()
-	for processkey in processes.keys():
-		process_taus[processkey] = tau0
+	
+		
 	timer = 0
 	waittime = 0
 	turnaroundtime = 0
 	queue = []
 	remaining_cs= 0
 	num_cs = 0
+	num_preemptions = 0
 	start_cs = False
 	end_cs = False
 
@@ -193,16 +197,21 @@ def SRT(p, tau0, alpha, t_cs, at):
 				end_cs = True
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
-				if timer < 1000:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
-					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
-
+				#update tau for next time based on last cpu burst length
+				#print(process_taus[running_process], last_cpu_burst[running_process])
+				process_taus[running_process] = math.ceil((alpha * last_cpu_burst[running_process]) + ((1 - alpha) * process_taus[running_process]))
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
 					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
-				elif timer < 1000:
-					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
+					#if timer < 1000:
+				else:
+					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
+					#elif timer < 1000:
+					if running_process in processes:
+						print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
+					preempted[running_process] = False
 
 
 		#only decriment context switch time if it didnt finish in this loop iteration
@@ -215,9 +224,24 @@ def SRT(p, tau0, alpha, t_cs, at):
 		#if a context switch into the queue is occuring and finishes, it starts using the cpu
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
-			if timer < 1000:
+			#if timer < 1000:
+
+			if preempted[running_process]:
+				print("time {}ms: Process {} started using the CPU with {}ms remaining {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
+			else:
 				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
+		
 			start_cs = False
+			if len(queue):
+				first_in_queue = heappop(queue)
+				heappush(queue, first_in_queue)
+				if process_taus[first_in_queue[1]] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]):
+					print("time {}ms: Process {} (tau {}ms) will preempt {} {}".format(timer, alphabet[first_in_queue[1]], process_taus[first_in_queue[1]], alphabet[running_process], Qstr(sorted(queue))))
+					heappop(queue)
+					heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
+					running_process = first_in_queue[1]
+					start_cs = True
+					remaining_cs = t_cs
 
 
 
@@ -227,22 +251,44 @@ def SRT(p, tau0, alpha, t_cs, at):
 			if running_process in processes.keys():
 				arrival_times[running_process] = timer + processes[running_process][1].pop(0)
 			running_process = None
-
+		waittime += len(queue)
 		#check for newly arriving processes, either from finished io or new arrival
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
-				
-				
-				heappush(queue, (process_taus[i], i))
-				if timer < 1000:
+
+				#preemption occurs
+				if running_process != None and process_taus[i] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]) and not start_cs and not end_cs:
+					#if timer < 1000:
+					if at[i] == arrival_times[i]: #first arrival
+						print("time {}ms: Process {} (tau {}ms) arrived and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
+					else: #finished io burst
+						print("time {}ms: Process {} (tau {}ms) completed I/O and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
+					#preempted process already did some cpu
+					if last_cpu_burst[running_process] > processes[running_process][0][0]:
+						preempted[running_process] = True
+					heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
+					running_process = i
+					start_cs = True
+					end_cs = False
+					if remaining_cs > 0:
+						num_cs += 1
+					# if remaining_cs > t_cs:
+					# 	remaining_cs -= t_cs
+					# remaining_cs = remaining_cs + t_cs
+					remaining_cs = t_cs
+
+					num_preemptions += 1
+
+
+				else:
+					heappush(queue, (process_taus[i], i))
+					#if timer < 1000:
 					if at[i] == arrival_times[i]: #first arrival
 						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
 					else: #finished io burst
 						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
-				#update tau for next time based on this cpu burst length
-				process_taus[i] = math.ceil((alpha * processes[i][0][0]) + ((1 - alpha) * process_taus[i]))
-				waittime -= 1 #to account for newly arrived processes that havent waited yet
-		waittime += len(queue)
+					last_cpu_burst[i] = processes[i][0][0]
+				last_cpu_burst[i] = processes[i][0][0]
 
 		# start running a new process if none is running or being switched out
 		if not running_process and not end_cs: #no process currently using CPU
@@ -269,12 +315,12 @@ def SRT(p, tau0, alpha, t_cs, at):
 	avg_cpubursttime = cpubursttime/num_bursts
 	avg_waittime = waittime/num_bursts
 
-	finalstats = "Algorithm SJF\n"
+	finalstats = "Algorithm SRT\n"
 	finalstats += "-- average CPU burst time: {0:.3f} ms\n".format(avg_cpubursttime)
 	finalstats += "-- average wait time: {0:.3f} ms\n".format(avg_waittime)
 	finalstats += "-- average turnaround time: {0:.3f} ms\n".format(avg_turnaroundtime)
 	finalstats += "-- total number of context switches: {}\n".format(num_cs)
-	finalstats += "-- total number of preemptions: 0\n"
+	finalstats += "-- total number of preemptions: {}\n".format(num_preemptions)
 
 	return finalstats
 
