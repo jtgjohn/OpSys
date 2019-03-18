@@ -308,14 +308,14 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
 				if timer < 1000:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
 					#print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
-					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
+					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(queue)))
 				elif timer < 1000:
-					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
+					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(queue)))
 
 
 
@@ -330,7 +330,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
 			if timer < 1000:
-				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
+				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
 			start_cs = False
 
 
@@ -345,12 +345,14 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		#check for newly arriving processes, either from finished io or new arrival
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
-				heappush(queue, (alphabet[i], i))
+				#heappush(queue, (alphabet[i], i))
+				toAdd = (alphabet[i], i)
+				queue.append(toAdd)
 				if timer < 1000:
 					if at[i] == arrival_times[i]: #first arrival
-						print("time {}ms: Process {} arrived; added to ready queue {}".format(timer, alphabet[i], Qstr(sorted(queue))))
+						print("time {}ms: Process {} arrived; added to ready queue {}".format(timer, alphabet[i], Qstr(queue)))
 					else: #finished io burst
-						print("time {}ms: Process {} completed I/O; added to ready queue {}".format(timer, alphabet[i], Qstr(sorted(queue))))
+						print("time {}ms: Process {} completed I/O; added to ready queue {}".format(timer, alphabet[i], Qstr(queue)))
 				#update tau for next time based on this cpu burst length
 				waittime -= 1 #to account for newly arrived processes that havent waited yet
 		waittime += len(queue)
@@ -358,7 +360,8 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		# start running a new process if none is running or being switched out
 		if not running_process and not end_cs: #no process currently using CPU
 			if len(queue) > 0: #queue is not empty
-				running_process = heappop(queue)[1]
+				#running_process = heappop(queue)[1]
+				running_process = queue.pop(0)[1]
 				remaining_cs = int(t_cs/2)
 				start_cs = True
 	
@@ -368,7 +371,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 	#reset timer back one for the last increment
 	timer -= 1
 
-	print("time {}ms: Simulator ended for {} {}".format(timer,alg_name, Qstr(sorted(queue))))
+	print("time {}ms: Simulator ended for {} {}".format(timer,alg_name, Qstr(queue)))
 	num_bursts = 0
 	cpubursttime = 0
 	turnaroundtime += waittime
