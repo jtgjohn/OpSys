@@ -183,6 +183,7 @@ def SRT(p, tau0, alpha, t_cs, at):
 	num_preemptions = 0
 	start_cs = False
 	end_cs = False
+	process_preempted = False
 
 
 	while len(processes) or end_cs:
@@ -205,7 +206,10 @@ def SRT(p, tau0, alpha, t_cs, at):
 					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
 					#if timer < 1000:
 				else:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					if len(processes[running_process][0]) > 1:
+						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					else:
+						print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
 					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 					#elif timer < 1000:
@@ -232,22 +236,25 @@ def SRT(p, tau0, alpha, t_cs, at):
 				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
 		
 			start_cs = False
+
 			if len(queue):
 				first_in_queue = heappop(queue)
 				heappush(queue, first_in_queue)
 				if process_taus[first_in_queue[1]] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]):
 					print("time {}ms: Process {} (tau {}ms) will preempt {} {}".format(timer, alphabet[first_in_queue[1]], process_taus[first_in_queue[1]], alphabet[running_process], Qstr(sorted(queue))))
-					heappop(queue)
-					heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
-					running_process = first_in_queue[1]
-					start_cs = True
-					remaining_cs = t_cs
+					# heappop(queue)
+					# heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
+					# running_process = first_in_queue[1]
+					end_cs = True
+					process_preempted = True
+					remaining_cs = t_cs/2
 
 
 
 		#if a process finishes switching out of the queue, run its io burst
-		elif end_cs and remaining_cs == 0:
+		elif end_cs and remaining_cs == 0 and not process_preempted:
 			end_cs = False
+
 			if running_process in processes.keys():
 				arrival_times[running_process] = timer + processes[running_process][1].pop(0)
 			running_process = None
@@ -266,18 +273,19 @@ def SRT(p, tau0, alpha, t_cs, at):
 					#preempted process already did some cpu
 					if last_cpu_burst[running_process] > processes[running_process][0][0]:
 						preempted[running_process] = True
-					heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
-					running_process = i
-					start_cs = True
-					end_cs = False
-					if remaining_cs > 0:
-						num_cs += 1
-					# if remaining_cs > t_cs:
-					# 	remaining_cs -= t_cs
-					# remaining_cs = remaining_cs + t_cs
-					remaining_cs = t_cs
+					#heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
+					end_cs = True
+					process_preempted = True
+					remaining_cs = int(t_cs/2)
+					heappush(queue, (process_taus[i], i))
+					# if remaining_cs > 0:
+					# 	num_cs += 1
+					# # if remaining_cs > t_cs:
+					# # 	remaining_cs -= t_cs
+					# # remaining_cs = remaining_cs + t_cs
+					# remaining_cs = t_cs
 
-					num_preemptions += 1
+					#num_preemptions += 1
 
 
 				else:
@@ -289,6 +297,15 @@ def SRT(p, tau0, alpha, t_cs, at):
 						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
 					last_cpu_burst[i] = processes[i][0][0]
 				last_cpu_burst[i] = processes[i][0][0]
+
+		if end_cs and process_preempted and remaining_cs == 0:
+			num_preemptions += 1
+			end_cs = False
+			heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
+			running_process =  heappop(queue)[1]
+			start_cs = True
+			remaining_cs = int(t_cs/2)
+			process_preempted = False
 
 		# start running a new process if none is running or being switched out
 		if not running_process and not end_cs: #no process currently using CPU
@@ -421,6 +438,3 @@ if __name__ == "__main__":
 
 
 	file.close()
-
-
-
