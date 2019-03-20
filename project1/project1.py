@@ -204,17 +204,16 @@ def SRT(p, tau0, alpha, t_cs, at):
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
 					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
-					#if timer < 1000:
 				else:
-					if len(processes[running_process][0]) > 1:
-						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
-					else:
-						print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
-					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
+					if timer < 1000:
+						if len(processes[running_process][0]) > 1:
+							print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+						else:
+							print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+						print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
-					#elif timer < 1000:
-					if running_process in processes:
-						print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
+						if running_process in processes:
+							print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(sorted(queue))))
 					preempted[running_process] = False
 
 
@@ -228,12 +227,12 @@ def SRT(p, tau0, alpha, t_cs, at):
 		#if a context switch into the queue is occuring and finishes, it starts using the cpu
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
-			#if timer < 1000:
+			if timer < 1000:
 
-			if preempted[running_process]:
-				print("time {}ms: Process {} started using the CPU with {}ms remaining {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
-			else:
-				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
+				if preempted[running_process]:
+					print("time {}ms: Process {} started using the CPU with {}ms remaining {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
+				else:
+					print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(sorted(queue))))
 		
 			start_cs = False
 
@@ -241,7 +240,8 @@ def SRT(p, tau0, alpha, t_cs, at):
 				first_in_queue = heappop(queue)
 				heappush(queue, first_in_queue)
 				if process_taus[first_in_queue[1]] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]):
-					print("time {}ms: Process {} (tau {}ms) will preempt {} {}".format(timer, alphabet[first_in_queue[1]], process_taus[first_in_queue[1]], alphabet[running_process], Qstr(sorted(queue))))
+					if timer < 1000:
+						print("time {}ms: Process {} (tau {}ms) will preempt {} {}".format(timer, alphabet[first_in_queue[1]], process_taus[first_in_queue[1]], alphabet[running_process], Qstr(sorted(queue))))
 					# heappop(queue)
 					# heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
 					# running_process = first_in_queue[1]
@@ -265,11 +265,11 @@ def SRT(p, tau0, alpha, t_cs, at):
 
 				#preemption occurs
 				if running_process != None and process_taus[i] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]) and not start_cs and not end_cs:
-					#if timer < 1000:
-					if at[i] == arrival_times[i]: #first arrival
-						print("time {}ms: Process {} (tau {}ms) arrived and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
-					else: #finished io burst
-						print("time {}ms: Process {} (tau {}ms) completed I/O and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
+					if timer < 1000:
+						if at[i] == arrival_times[i]: #first arrival
+							print("time {}ms: Process {} (tau {}ms) arrived and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
+						else: #finished io burst
+							print("time {}ms: Process {} (tau {}ms) completed I/O and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
 					#preempted process already did some cpu
 					if last_cpu_burst[running_process] > processes[running_process][0][0]:
 						preempted[running_process] = True
@@ -290,11 +290,11 @@ def SRT(p, tau0, alpha, t_cs, at):
 
 				else:
 					heappush(queue, (process_taus[i], i))
-					#if timer < 1000:
-					if at[i] == arrival_times[i]: #first arrival
-						print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
-					else: #finished io burst
-						print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
+					if timer < 1000:
+						if at[i] == arrival_times[i]: #first arrival
+							print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
+						else: #finished io burst
+							print("time {}ms: Process {} (tau {}ms) completed I/O; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
 					last_cpu_burst[i] = processes[i][0][0]
 				last_cpu_burst[i] = processes[i][0][0]
 
