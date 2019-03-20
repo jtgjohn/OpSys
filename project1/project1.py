@@ -297,6 +297,8 @@ def RR(p, t_slice, alg_name,t_cs,at):
 	start_cs = False
 	end_cs = False
 
+	twasPre = set()
+
 	while len(processes) or end_cs:
 
 
@@ -330,6 +332,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		#Preemptions
 		if(preemptionTimer == t_slice) and (running_process):
 			if len(queue) > 0:	
+				twasPre.add(running_process)
 				preeCount += 1
 				timeLeft = processes[running_process][0][0]
 				if timer < 1000:
@@ -349,7 +352,11 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		if start_cs and remaining_cs == 0:
 			num_cs += 1
 			if timer < 1000:
-				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
+				if running_process in twasPre:
+					print("time {}ms: Process {} started using the CPU with {}ms remaining {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
+					twasPre.remove(running_process)
+				else:
+					print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
 			start_cs = False
 			preemptionTimer = 0
 
