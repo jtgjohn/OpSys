@@ -110,7 +110,6 @@ def SJF(p, tau0, alpha, t_cs, at):
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
 				
-				
 				heappush(queue, (process_taus[i], i))
 				if timer < 1000:
 					if at[i] == arrival_times[i]: #first arrival
@@ -336,7 +335,10 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				if timer < 1000:
 					print("time {}ms: Time slice expired; process {} preempted with {}ms to go {}".format(timer,alphabet[running_process],timeLeft,Qstr(queue)))
 				toAdd = (alphabet[running_process], running_process)
-				queue.append(toAdd)
+				if (rr_add == "END"):
+					queue.append(toAdd)
+				else:
+					queue.insert(0,toAdd)
 				running_process = None
 			elif(timer < 1000):
 				print("time {}ms: Time slice expired; no preemption because ready queue is empty {}".format(timer, Qstr(queue)))
