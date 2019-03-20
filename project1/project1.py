@@ -285,7 +285,9 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
 	print("time 0ms: Simulator started for {} [Q <empty>]".format(alg_name))
 
+	preeCount = 0
 	running_process = None
+	preemptionTimer = 0
 	timer = 0
 	waittime = 0
 	turnaroundtime = 0
@@ -314,6 +316,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
 					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(queue)))
+					preemptionTimer = 0
 				elif timer < 1000:
 					print("time {}ms: Process {} switching out of CPU; will block on I/O until time {}ms {}".format(timer, alphabet[running_process], int(t_cs/2) + timer + processes[running_process][1][0], Qstr(queue)))
 
@@ -325,6 +328,22 @@ def RR(p, t_slice, alg_name,t_cs,at):
 			turnaroundtime += 1
 
 
+		#Preemptions
+		if(preemptionTimer == t_slice) and (running_process):
+			if len(queue) > 0:	
+				preeCount += 1
+				timeLeft = processes[running_process][0][0]
+				if timer < 1000:
+					print("time {}ms: Time slice expired; process {} preempted with {}ms to go {}".format(timer,alphabet[running_process],timeLeft,Qstr(queue)))
+				toAdd = (alphabet[running_process], running_process)
+				queue.append(toAdd)
+				running_process = queue.pop(0)[1]
+				remaining_cs = int(t_cs/2)
+				start_cs = True
+			elif(timer < 1000):
+				print("time {}ms: Time slice expired; no preemption because ready queue is empty {}".format(timer, Qstr(queue)))
+			timer += 2
+
 
 		#if a context switch into the queue is occuring and finishes, it starts using the cpu
 		if start_cs and remaining_cs == 0:
@@ -332,13 +351,16 @@ def RR(p, t_slice, alg_name,t_cs,at):
 			if timer < 1000:
 				print("time {}ms: Process {} started using the CPU for {}ms burst {}".format(timer, alphabet[running_process], processes[running_process][0][0], Qstr(queue)))
 			start_cs = False
+			preemptionTimer = 0
 
 
 
 		#if a process finishes switching out of the queue, run its io burst
 		elif end_cs and remaining_cs == 0:
 			end_cs = False
+			preemptionTimer = 0
 			if running_process in processes.keys():
+				print(processes)
 				arrival_times[running_process] = timer + processes[running_process][1].pop(0)
 			running_process = None
 
@@ -364,8 +386,9 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				running_process = queue.pop(0)[1]
 				remaining_cs = int(t_cs/2)
 				start_cs = True
+				preemptionTimer = 0
 	
-
+		preemptionTimer += 1
 		timer += 1
 
 	#reset timer back one for the last increment
@@ -388,7 +411,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 	finalstats += "-- average wait time: {0:.3f} ms\n".format(avg_waittime)
 	finalstats += "-- average turnaround time: {0:.3f} ms\n".format(avg_turnaroundtime)
 	finalstats += "-- total number of context switches: {}\n".format(num_cs)
-	finalstats += "-- total number of preemptions: 0\n"
+	finalstats += "-- total number of preemptions: {}\n".format(preeCount)
 	print()
 	return finalstats
 
