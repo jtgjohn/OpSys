@@ -204,7 +204,6 @@ def SRT(p, tau0, alpha, t_cs, at):
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
 				#update tau for next time based on last cpu burst length
-				#print(process_taus[running_process], last_cpu_burst[running_process])
 				process_taus[running_process] = math.ceil((alpha * last_cpu_burst[running_process]) + ((1 - alpha) * process_taus[running_process]))
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
@@ -247,9 +246,7 @@ def SRT(p, tau0, alpha, t_cs, at):
 				if process_taus[first_in_queue[1]] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]):
 					if timer < 1000:
 						print("time {}ms: Process {} (tau {}ms) will preempt {} {}".format(timer, alphabet[first_in_queue[1]], process_taus[first_in_queue[1]], alphabet[running_process], Qstr(sorted(queue))))
-					# heappop(queue)
-					# heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
-					# running_process = first_in_queue[1]
+
 					end_cs = True
 					process_preempted = True
 					remaining_cs = t_cs/2
@@ -280,7 +277,7 @@ def SRT(p, tau0, alpha, t_cs, at):
 					#preempted process already did some cpu
 					if last_cpu_burst[running_process] > processes[running_process][0][0]:
 						preempted[running_process] = True
-					#heappush(queue, (process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]), running_process))
+					
 					end_cs = True
 					process_preempted = True
 					remaining_cs = int(t_cs/2)
@@ -333,6 +330,7 @@ def SRT(p, tau0, alpha, t_cs, at):
 	finalstats += "-- average turnaround time: {0:.3f} ms\n".format(avg_turnaroundtime)
 	finalstats += "-- total number of context switches: {}\n".format(num_cs)
 	finalstats += "-- total number of preemptions: {}\n".format(num_preemptions)
+	print()
 	return finalstats
 
 #make round robin extensible by printing out the right algorithm name so it can be used 
@@ -376,7 +374,10 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
 				if timer < 1000 and len(processes[running_process][0]) != 0:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
+					if len(processes[running_process][0]) == 1:
+						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
+					else:
+						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
 					#print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
@@ -397,14 +398,11 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				timeLeft = processes[running_process][0][0]
 				if timer < 1000:
 					print("time {}ms: Time slice expired; process {} preempted with {}ms to go {}".format(timer,alphabet[running_process],timeLeft,Qstr(queue)))
-				toAdd = (alphabet[running_process], running_process)
+				
 				end_cs = True
 				remaining_cs = t_cs/2
 				isPreemp = True
-				if (rr_add == "END"):
-					queue.append(toAdd)
-				else:
-					queue.insert(0,toAdd)
+
 			elif(timer < 1000):
 				print("time {}ms: Time slice expired; no preemption because ready queue is empty {}".format(timer, Qstr(queue)))
 
@@ -428,6 +426,12 @@ def RR(p, t_slice, alg_name,t_cs,at):
 			if running_process in processes.keys():
 				if(isPreemp):
 					isPreemp = False
+					toAdd = (alphabet[running_process], running_process)
+					if (rr_add == "END"):
+						queue.append(toAdd)
+					else:
+						queue.insert(0,toAdd)
+					waittime -= 1
 					#running_process = queue[0][1]
 					#arrival_times[running_process] = timer + processes[running_process][0][0]
 				else:
@@ -439,7 +443,10 @@ def RR(p, t_slice, alg_name,t_cs,at):
 			if i != running_process and arrival_times[i] == timer:
 				#heappush(queue, (alphabet[i], i))
 				toAdd = (alphabet[i], i)
-				queue.append(toAdd)
+				if (rr_add == "END"):
+					queue.append(toAdd)
+				else:
+					queue.insert(0,toAdd)
 				if timer < 1000:
 					if at[i] == arrival_times[i]: #first arrival
 						print("time {}ms: Process {} arrived; added to ready queue {}".format(timer, alphabet[i], Qstr(queue)))
@@ -542,7 +549,6 @@ if __name__ == "__main__":
 			upper = int(-math.log(rand.drand())/y)
 		arrival_times[i] = upper
 		num_bursts = int(rand.drand() * 100) + 1
-		#print("Process {} (arrival time {} ms) {} CPU bursts".format(alphabet[i], upper, num_bursts))
 		for j in range(num_bursts):
 			upper = upper_bound + 1
 			while upper > upper_bound:
@@ -553,28 +559,14 @@ if __name__ == "__main__":
 				while upper > upper_bound:
 					upper = math.ceil(-math.log(rand.drand())/y)
 				processes[i][1].append(upper)
-			#print("--> CPU burst {} ms --> I/O burst {} ms".format(processes[i][0][-1], upper))
-
-	# 	print(sum(processes[i][0])/len(processes[i][0]))
-	# 	print(len(processes[i][0]))
-	# print(arrival_times)
-	# print(processes)
 
 	file = open("simout.txt", "w")
 
 
 	file.write(SJF(processes, math.ceil(1/y), alpha, t_cs, arrival_times))
-  file.write(SRT(processes, math.ceil(1/y), alpha, t_cs, arrival_times))
+	file.write(SRT(processes, math.ceil(1/y), alpha, t_cs, arrival_times))
 	file.write(FCFS(processes,arrival_times,t_cs))
 	file.write(RR(processes,t_slice,"RR",t_cs,arrival_times))
-	print()
-
-
-	# test = {1: [[18],[]], 2: [[3],[]], 3: [[4], []]}
-	# atest = {1: 0, 2: 0, 3:0}
-	# file.write(SJF(test, 5, 0.5, 2, atest))
-
-
 
 
 	file.close()
