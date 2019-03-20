@@ -341,7 +341,10 @@ def RR(p, t_slice, alg_name,t_cs,at):
 	arrival_times = at.copy()
 	processes = copy.deepcopy(p)
 	for i in processes:
-		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		if len(processes[i][0]) > 1:
+			print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		else:
+			print("Process {} [NEW] (arrival time {} ms) {} CPU burst".format(alphabet[i], arrival_times[i], len(processes[i][0])))
 	print("time 0ms: Simulator started for {} [Q <empty>]".format(alg_name))
 
 	isPreemp = False
