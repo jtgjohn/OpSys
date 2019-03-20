@@ -294,6 +294,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 	num_cs = 0
 	start_cs = False
 	end_cs = False
+	curTSlice = 0
 
 	while len(processes) or end_cs:
 
@@ -307,7 +308,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				end_cs = True
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
-				if timer < 1000:
+				if timer < 1000 and len(processes[running_process][0]) != 0:
 					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
 					#print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
