@@ -285,6 +285,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
 	print("time 0ms: Simulator started for {} [Q <empty>]".format(alg_name))
 
+	isPreemp = False
 	preeCount = 0
 	running_process = None
 	preemptionTimer = 0
@@ -312,7 +313,6 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				if timer < 1000:
 					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
 					#print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
-
 				if len(processes[running_process][0]) == 0:
 					processes.pop(running_process)
 					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(queue)))
@@ -337,9 +337,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 					print("time {}ms: Time slice expired; process {} preempted with {}ms to go {}".format(timer,alphabet[running_process],timeLeft,Qstr(queue)))
 				toAdd = (alphabet[running_process], running_process)
 				queue.append(toAdd)
-				running_process = queue.pop(0)[1]
-				remaining_cs = int(t_cs/2)
-				start_cs = True
+				running_process = None
 			elif(timer < 1000):
 				print("time {}ms: Time slice expired; no preemption because ready queue is empty {}".format(timer, Qstr(queue)))
 			timer += 2
@@ -360,7 +358,6 @@ def RR(p, t_slice, alg_name,t_cs,at):
 			end_cs = False
 			preemptionTimer = 0
 			if running_process in processes.keys():
-				print(processes)
 				arrival_times[running_process] = timer + processes[running_process][1].pop(0)
 			running_process = None
 
