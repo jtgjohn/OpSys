@@ -39,8 +39,11 @@ def SJF(p, tau0, alpha, t_cs, at):
 	arrival_times = at.copy()
 	processes = copy.deepcopy(p)
 	for i in processes:
-		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
-
+		if len(processes[i][0]) > 1:
+			print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		else:
+			print("Process {} [NEW] (arrival time {} ms) {} CPU burst".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		
 	print("time 0ms: Simulator started for SJF [Q <empty>]")
 
 	running_process = None
@@ -165,7 +168,11 @@ def SRT(p, tau0, alpha, t_cs, at):
 	last_cpu_burst = dict()
 
 	for i in processes:
-		print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		if len(processes[i][0]) > 1:
+			print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		else:
+			print("Process {} [NEW] (arrival time {} ms) {} CPU burst".format(alphabet[i], arrival_times[i], len(processes[i][0])))
+		
 		preempted[i] = False
 		process_taus[i] = tau0
 
@@ -262,9 +269,11 @@ def SRT(p, tau0, alpha, t_cs, at):
 		#check for newly arriving processes, either from finished io or new arrival
 		for i in processes.keys():
 			if i != running_process and arrival_times[i] == timer:
+				heappush(queue, (process_taus[i], i))
 
 				#preemption occurs
 				if running_process != None and process_taus[i] < process_taus[running_process] - (last_cpu_burst[running_process] - processes[running_process][0][0]) and not start_cs and not end_cs:
+
 					if timer < 1000:
 						if at[i] == arrival_times[i]: #first arrival
 							print("time {}ms: Process {} (tau {}ms) arrived and will preempt {} {}".format(timer, alphabet[i], process_taus[i], alphabet[running_process], Qstr(sorted(queue))))
@@ -277,19 +286,7 @@ def SRT(p, tau0, alpha, t_cs, at):
 					end_cs = True
 					process_preempted = True
 					remaining_cs = int(t_cs/2)
-					heappush(queue, (process_taus[i], i))
-					# if remaining_cs > 0:
-					# 	num_cs += 1
-					# # if remaining_cs > t_cs:
-					# # 	remaining_cs -= t_cs
-					# # remaining_cs = remaining_cs + t_cs
-					# remaining_cs = t_cs
-
-					#num_preemptions += 1
-
-
 				else:
-					heappush(queue, (process_taus[i], i))
 					if timer < 1000:
 						if at[i] == arrival_times[i]: #first arrival
 							print("time {}ms: Process {} (tau {}ms) arrived; added to ready queue {}".format(timer, alphabet[i], process_taus[i], Qstr(sorted(queue))))
