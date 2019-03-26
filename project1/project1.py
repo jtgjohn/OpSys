@@ -73,7 +73,10 @@ def SJF(p, tau0, alpha, t_cs, at):
 				remaining_cs = int(t_cs/2)
 				processes[running_process][0].pop(0)
 				if timer < 1000:
-					print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					if len(processes[running_process][0]) == 1:
+						print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+					else:
+						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
 					print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 				if len(processes[running_process][0]) == 0:
@@ -210,10 +213,10 @@ def SRT(p, tau0, alpha, t_cs, at):
 					print("time {}ms: Process {} terminated {}".format(timer, alphabet[running_process], Qstr(sorted(queue))))
 				else:
 					if timer < 1000:
-						if len(processes[running_process][0]) > 1:
-							print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
-						else:
+						if len(processes[running_process][0]) == 1:
 							print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
+						else:
+							print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
 						print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 						if running_process in processes:
@@ -375,7 +378,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				processes[running_process][0].pop(0)
 				if timer < 1000 and len(processes[running_process][0]) != 0:
 					if len(processes[running_process][0]) == 1:
-						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
+						print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
 					else:
 						print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(queue)))
 					#print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
@@ -427,10 +430,7 @@ def RR(p, t_slice, alg_name,t_cs,at):
 				if(isPreemp):
 					isPreemp = False
 					toAdd = (alphabet[running_process], running_process)
-					if (rr_add == "END"):
-						queue.append(toAdd)
-					else:
-						queue.insert(0,toAdd)
+					queue.append(toAdd)
 					waittime -= 1
 					#running_process = queue[0][1]
 					#arrival_times[running_process] = timer + processes[running_process][0][0]
