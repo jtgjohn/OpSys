@@ -238,8 +238,6 @@ def SRT(p, tau0, alpha, t_cs, at):
 						#if there are multiple bursts to go
 						else:
 							print("time {}ms: Process {} completed a CPU burst; {} burst to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
-						else:
-							print("time {}ms: Process {} completed a CPU burst; {} bursts to go {}".format(timer, alphabet[running_process], len(processes[running_process][0]), Qstr(sorted(queue))))
 						print("time {}ms: Recalculated tau = {}ms for process {} {}".format(timer, process_taus[running_process], alphabet[running_process], Qstr(sorted(queue))))
 
 						#switch to io
