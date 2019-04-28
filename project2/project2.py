@@ -125,7 +125,100 @@ def firstfit(framesperline, memsize, tmemmove, p, sp):
 	time -= 1
 	print("time {}ms: Simulator ended (Contiguous -- First-Fit)".format(time))
 
+def nextfit(framesperline, memsize, tmemmove, p, sp):
+	time = 0
+	processes = copy.deepcopy(p)
+	sizeprocess = sp.copy()
+	removeprocesses = {}
+	for key in processes.keys():
+		removeprocesses[key] = -1
+	memory = ["."] * memsize
+	defragprocess = '.'
+	nextpointer = 0
 
+	print("time {}ms: Simulator started (Contiguous -- Next-Fit)".format(time))
+
+
+	while len(removeprocesses):
+		toremove = [p for p in processes if len(processes[p]) == 0]
+		for p in toremove:
+			processes.pop(p)
+
+		for p in removeprocesses:
+			if removeprocesses[p] == time:
+				for i in range(len(memory)):
+					if memory[i] == p:
+						memory[i] = "."
+				print("time {}ms: Process {} removed:".format(time, p))
+				printmem(memory, framesperline)
+
+		finished = [p for p in removeprocesses if p not in processes and removeprocesses[p] < time]
+		for p in finished:
+			removeprocesses.pop(p)
+		if (len(removeprocesses) == 0):
+			break
+
+		for p in processes:
+
+			if processes[p][0][0] == time:
+				removeprocesses[p] = time + processes[p][0][1]
+				sizeneeded = sizeprocess[p]
+				if p != defragprocess:
+					print("time {}ms: Process {} arrived (requires {} frames)".format(time, p, sizeneeded))
+				else:
+					defragprocess = '.'
+				if memory.count(".") < sizeneeded:
+					print("time {}ms: Cannot place process {} -- skipped!".format(time, p))
+					removeprocesses[p] = -1
+					processes[p].pop(0)
+					continue
+				startpointer = 0
+				freespace = 0
+				for index in range(nextpointer, len(memory) + nextpointer):
+					i = (index % len(memory))
+					if memory[i] != ".":
+						freespace = 0
+						continue
+					if freespace == 0:
+						startpointer = i
+					freespace += 1
+					if freespace == sizeneeded:
+						break
+
+				if freespace < sizeneeded:
+					print("time {}ms: Cannot place process {} -- starting defragmentation".format(time, p))
+					timespent, changed = defragment(memory, tmemmove)
+					time += timespent
+					print("time {}ms: Defragmentation complete (moved {} frames: ".format(time, int(timespent/tmemmove)), end="")
+					for i in range(len(changed)-1):
+						print("{}, ".format(changed[i]), end="")
+
+					print("{})".format(changed[-1]))
+
+					for proc in processes:
+						processes[proc] = [(x+timespent, y) for x, y in processes[proc]]
+					for proc in removeprocesses:
+						removeprocesses[proc] += timespent
+					defragprocess = p
+					nextpointer = memory.index(".")
+					break
+
+				for i in range(startpointer, startpointer + sizeneeded):
+					memory[i] = p
+				print("time {}ms: Placed process {}:".format(time, p))
+				printmem(memory, framesperline)
+				processes[p].pop(0)
+
+		if defragprocess != '.':
+			defraged = '.'
+			continue
+
+
+
+		time += 1
+
+	time -= 1
+	print("time {}ms: Simulator ended (Contiguous -- Next-Fit)".format(time))
 
 
 
@@ -169,6 +262,8 @@ if __name__ == "__main__":
 		sys.exit(1)
 	file.close()
 	firstfit(framesperline, memsize, tmemmove, processes, sizeprocess)
+	print()
+	nextfit(framesperline, memsize, tmemmove, processes, sizeprocess)
 
 
 
