@@ -174,8 +174,8 @@ def nextfit(framesperline, memsize, tmemmove, p, sp):
 					continue
 				startpointer = 0
 				freespace = 0
-				for index in range(nextpointer, len(memory) + nextpointer):
-					i = (index % len(memory))
+				for index in range(2*len(memory)):
+					i = (index + nextpointer) % len(memory)
 					if i == 0:
 						freespace = 0
 					
@@ -188,6 +188,7 @@ def nextfit(framesperline, memsize, tmemmove, p, sp):
 					freespace += 1
 					if freespace == sizeneeded:
 						break
+
 
 #########################################################################################
 #DEFRAGMENTATION
@@ -339,8 +340,14 @@ def noncontiguous(framesperline, memsize, p, sp):
 		removeprocesses[key] = -1
 	memory = ["."] * memsize
 
-	print("time {}ms: Simulator started (Contiguous -- First-Fit)".format(time))
+	print("time {}ms: Simulator started (Non-Contiguous)".format(time))
 
+	#NOTE TO ANDREW AND CJ
+	#Follow printing format and use function printmem(memory, framesperline)
+	#when needed
+	#You dont need my defragmentation function since noncontiguous doesn't need to defrag
+	#This is pretty much the First-Fit algorithm copied and pasted but I deleted 
+	#some stuff that you shouldnt need
 
 	while len(removeprocesses):
 		toremove = [p for p in processes if len(processes[p]) == 0]
@@ -387,7 +394,7 @@ def noncontiguous(framesperline, memsize, p, sp):
 						break
 
 				#########################
-				#NOT NEEDED: I JUST PUT IT IN SO IT WILL RUN
+				#NOT NEEDED: I JUST PUT IT IN SO IT WILL RUN IN SUBMITTY
 				# YOU CAN DELETE
 				if freespace < sizeneeded:
 					print("time {}ms: Cannot place process {} -- skipped!".format(time, p))
@@ -395,7 +402,7 @@ def noncontiguous(framesperline, memsize, p, sp):
 					processes[p].pop(0)
 					continue
 				#####################################
-				
+
 				for i in range(startpointer, startpointer + sizeneeded):
 					memory[i] = p
 				print("time {}ms: Placed process {}:".format(time, p))
@@ -427,7 +434,19 @@ if __name__ == "__main__":
 
 	tmemmove = int(sys.argv[4])
 
+	#processes is a dictionary
+	#	The key is the process
+	# The value is a list of tuples
+	#		The 2-tuple values are arrival time and process duration
+	#	Example:
+	#		processes["A"] = [(100, 50)]
+	#		means process A needs memory for only one burst starting at time 
+	#		100 and lasting 50ms (so will exit at time 150)
 	processes = {}
+
+	#sizeprocess is a dictionary 
+	# Key -> process name
+	# Value -> how many frames of memory the process requires
 	sizeprocess = {}
 
 	try:
@@ -448,6 +467,8 @@ if __name__ == "__main__":
 		sys.stderr.write("ERROR: {}\n".format(err))
 		sys.exit(1)
 	file.close()
+
+	#Function calls for each of the four algorithms
 	firstfit(framesperline, memsize, tmemmove, processes, sizeprocess)
 	print()
 	nextfit(framesperline, memsize, tmemmove, processes, sizeprocess)
